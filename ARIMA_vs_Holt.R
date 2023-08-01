@@ -1,24 +1,28 @@
 library(urca)
+## the tmax.stl.fc object in the stl_decomposition.R script will be reused
 ## L’objet tmax.stl.fc va servir pour la suite de la modélisation:
 tmax.stl.fc <- tmax.stl |> select(-.model)
 
-############################## Etape 1##########################################
+############################## First step ##########################################
+## Naive method: residual analysis
 ## Méthode naïve: analyse graphique des résidus
 tmax.stl.fc |> model(NAIVE(season_adjust)) |> gg_tsresiduals()
 
+## Creation residual component object
 ## Création d’un objet contenant les résidus
 tmax.sadj.naive <- tmax.stl.fc |> model(NAIVE(season_adjust)) |> augment()
 
+## Ljung-Box portmanteau test
 ## Test portmanteau de Ljung-Box avec 10 lags
 tmax.sadj.naive |> features(.innov, ljung_box, lag = 10)
 
-#===============================> Méthode de Holt
+#===============================> Holt Method
 AAN=ETS(season_adjust ~ error("A") + trend("A") + season("N"))
 
-## Méthode naïve: analyse graphique des résidus
+## Naive method: residual analysis
 tmax.stl.fc |> model(AAN) |> gg_tsresiduals()
 
-## Création d’un objet contenant les résidus
+## Creation residual component object
 tmax.sadj.AAN <- tmax.stl.fc |> model(AAN) |> augment()
 
 ## Test portmanteau de Ljung-Box avec 10 lags
@@ -32,10 +36,10 @@ tmax.stl.fc |> model(ARIMA(season_adjust)) |> gg_tsresiduals()
 ## Création d’un objet contenant les résidus
 tmax.sadj.ARIMA <- tmax.stl.fc |> model(ARIMA(season_adjust)) |> augment()
 
-## Test portmanteau de Ljung-Box avec 10 lags
+## Ljung-Box portmanteau test with 10 lags
 tmax.sadj.ARIMA |> features(.innov, ljung_box, lag = 10)
 
-############################## Etape 2##########################################
+############################## Step 2##########################################
 
 ## Méthode naïve: prévision de la série dé-saisonnalisée
 tmax.stl.fc |> model(NAIVE(season_adjust)) |> forecast(h = 12) |> autoplot(tmax.stl.fc)
@@ -90,7 +94,7 @@ fit.tmax.stl |> forecast(h = 12) |> autoplot(tmax.series, level = 95)
 ## Calcul des mesures de perfomance sur la série de test
 fit.tmax.stl |> forecast(h = 12) |> accuracy(tmax.series.test)
 
-##==================> saisonal naive
+##==================> seasonal naive
 ## Création d’un objet contenant le modèle de prévision basé sur la décomposition STL
 fit.tmax.stl <- tmax.series |>
   model(stlf = decomposition_model(
